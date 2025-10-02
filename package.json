@@ -1,0 +1,23 @@
+{
+  "name": "wacheckeravatars",
+  "version": "1.0.0",
+  "description": "WhatsApp number filtering and verification system",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "whatsapp",
+    "number-checker",
+    "verification"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "whatsapp-web.js": "^1.23.0",
+    "qrcode": "^1.5.3",
+    "cors": "^2.8.5"
+  }
+}

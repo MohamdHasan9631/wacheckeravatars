@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Number Checker</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <i class="fab fa-whatsapp"></i>
+            <span>WhatsApp Number Checker</span>
+        </div>
+        <div class="navbar-menu">
+            <a href="#" class="nav-item active" onclick="showSection('dashboard')">
+                <i class="fas fa-home"></i> Dashboard
+            </a>
+            <a href="#" class="nav-item" onclick="showSection('sessions')">
+                <i class="fas fa-qrcode"></i> Sessions
+            </a>
+            <a href="#" class="nav-item" onclick="showSection('checker')">
+                <i class="fas fa-check-circle"></i> Number Checker
+            </a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h3><i class="fas fa-bars"></i> Menu</h3>
+            </div>
+            <ul class="sidebar-menu">
+                <li>
+                    <a href="#" class="menu-item active" onclick="showSection('dashboard')">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="menu-item" onclick="showSection('sessions')">
+                        <i class="fas fa-mobile-alt"></i>
+                        <span>Manage Sessions</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="menu-item" onclick="showSection('checker')">
+                        <i class="fas fa-search"></i>
+                        <span>Check Numbers</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="menu-item" onclick="showSection('results')">
+                        <i class="fas fa-table"></i>
+                        <span>Results</span>
+                    </a>
+                </li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="content-section active">
+                <div class="section-header">
+                    <h2><i class="fas fa-tachometer-alt"></i> Dashboard</h2>
+                    <p>Welcome to WhatsApp Number Checker</p>
+                </div>
+                
+                <div class="cards-grid">
+                    <div class="card">
+                        <div class="card-icon blue">
+                            <i class="fas fa-mobile-alt"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 id="activeSessions">0</h3>
+                            <p>Active Sessions</p>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-icon green">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 id="numbersChecked">0</h3>
+                            <p>Numbers Checked</p>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-icon orange">
+                            <i class="fas fa-user-check"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 id="validNumbers">0</h3>
+                            <p>Valid Numbers</p>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-icon red">
+                            <i class="fas fa-user-times"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 id="invalidNumbers">0</h3>
+                            <p>Invalid Numbers</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <i class="fas fa-info-circle"></i>
+                    <div>
+                        <h4>Getting Started</h4>
+                        <p>1. Create a new WhatsApp session in the Sessions tab</p>
+                        <p>2. Scan the QR code with your WhatsApp mobile app</p>
+                        <p>3. Go to Number Checker to verify phone numbers</p>
+                        <p>4. View results in the Results tab</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sessions Section -->
+            <section id="sessions" class="content-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-mobile-alt"></i> Manage WhatsApp Sessions</h2>
+                    <p>Create and manage multiple WhatsApp sessions</p>
+                </div>
+
+                <div class="action-box">
+                    <div class="form-group">
+                        <label for="sessionId">Session Name:</label>
+                        <input type="text" id="sessionId" placeholder="e.g., session-1" class="form-input">
+                    </div>
+                    <button onclick="createSession()" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Create New Session
+                    </button>
+                </div>
+
+                <div id="sessionsContainer" class="sessions-grid">
+                    <!-- Sessions will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Number Checker Section -->
+            <section id="checker" class="content-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-search"></i> Check Phone Numbers</h2>
+                    <p>Verify if phone numbers are registered on WhatsApp</p>
+                </div>
+
+                <div class="checker-container">
+                    <div class="form-group">
+                        <label for="checkSessionId">Select Session:</label>
+                        <select id="checkSessionId" class="form-input">
+                            <option value="">-- Select a session --</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phoneNumbers">Phone Numbers (one per line):</label>
+                        <textarea id="phoneNumbers" rows="10" class="form-textarea" 
+                            placeholder="Enter phone numbers with country code, e.g.:&#10;+1234567890&#10;+9876543210"></textarea>
+                    </div>
+
+                    <button onclick="checkNumbers()" class="btn btn-success">
+                        <i class="fas fa-check"></i> Check Numbers
+                    </button>
+                </div>
+
+                <div id="checkProgress" class="progress-box" style="display: none;">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>Checking numbers, please wait...</span>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section id="results" class="content-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-table"></i> Check Results</h2>
+                    <p>View all checked numbers and their status</p>
+                </div>
+
+                <div class="table-actions">
+                    <button onclick="exportResults('csv')" class="btn btn-secondary">
+                        <i class="fas fa-file-csv"></i> Export CSV
+                    </button>
+                    <button onclick="clearResults()" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Clear Results
+                    </button>
+                </div>
+
+                <div class="table-container">
+                    <table id="resultsTable" class="display" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>Number</th>
+                                <th>Status</th>
+                                <th>WhatsApp ID</th>
+                                <th>Name</th>
+                                <th>Business</th>
+                                <th>Profile Picture</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Results will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    
+    <script src="script.js"></script>
+</body>
+</html>

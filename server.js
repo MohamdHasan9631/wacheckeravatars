@@ -149,8 +149,15 @@ app.post('/api/check-numbers', async (req, res) => {
     
     try {
         const results = [];
+        const logs = [];
         
         for (const number of numbers) {
+            const logEntry = {
+                number: number,
+                timestamp: new Date().toISOString(),
+                attempts: []
+            };
+            
             try {
                 const numberId = await client.getNumberId(number);
                 
@@ -158,26 +165,79 @@ app.post('/api/check-numbers', async (req, res) => {
                     // Number exists on WhatsApp
                     const contact = await client.getContactById(numberId._serialized);
                     
+                    logEntry.attempts.push({
+                        id: numberId._serialized,
+                        success: true,
+                        message: `Number found with ID: ${numberId._serialized}`
+                    });
+                    
+                    // Try to get profile picture with different ID formats
+                    let profilePicUrl = null;
+                    const idFormats = [
+                        numberId._serialized,
+                        `${number.replace(/[^0-9]/g, '')}@c.us`,
+                        `${number.replace(/[^0-9]/g, '')}@s.whatsapp.net`,
+                        `${number.replace(/[^0-9]/g, '')}@w.whatsapp.net`
+                    ];
+                    
+                    for (const idFormat of idFormats) {
+                        try {
+                            const picUrl = await client.getProfilePicUrl(idFormat);
+                            if (picUrl) {
+                                profilePicUrl = picUrl;
+                                logEntry.attempts.push({
+                                    id: idFormat,
+                                    success: true,
+                                    message: `Profile picture found using ID: ${idFormat}`
+                                });
+                                break;
+                            }
+                        } catch (picError) {
+                            logEntry.attempts.push({
+                                id: idFormat,
+                                success: false,
+                                message: `Failed to get profile picture with ID: ${idFormat} - ${picError.message}`
+                            });
+                        }
+                    }
+                    
                     results.push({
                         number: number,
                         exists: true,
                         whatsappId: numberId._serialized,
                         name: contact.name || contact.pushname || 'N/A',
                         isBusiness: contact.isBusiness || false,
-                        hasProfilePic: contact.profilePicUrl ? true : false
+                        hasProfilePic: profilePicUrl ? true : false,
+                        profilePicUrl: profilePicUrl
                     });
+                    
+                    logEntry.result = 'success';
+                    logEntry.isBusiness = contact.isBusiness || false;
                 } else {
                     // Number doesn't exist on WhatsApp
+                    logEntry.result = 'not_found';
+                    logEntry.attempts.push({
+                        success: false,
+                        message: 'Number not found on WhatsApp'
+                    });
+                    
                     results.push({
                         number: number,
                         exists: false,
                         whatsappId: null,
                         name: 'N/A',
                         isBusiness: false,
-                        hasProfilePic: false
+                        hasProfilePic: false,
+                        profilePicUrl: null
                     });
                 }
             } catch (error) {
+                logEntry.result = 'error';
+                logEntry.attempts.push({
+                    success: false,
+                    message: `Error: ${error.message}`
+                });
+                
                 results.push({
                     number: number,
                     exists: false,
@@ -185,12 +245,15 @@ app.post('/api/check-numbers', async (req, res) => {
                     whatsappId: null,
                     name: 'Error',
                     isBusiness: false,
-                    hasProfilePic: false
+                    hasProfilePic: false,
+                    profilePicUrl: null
                 });
             }
+            
+            logs.push(logEntry);
         }
         
-        res.json({ success: true, results });
+        res.json({ success: true, results, logs });
     } catch (error) {
         console.error('Error checking numbers:', error);
         res.status(500).json({ error: 'Failed to check numbers' });

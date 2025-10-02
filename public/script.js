@@ -1,13 +1,12 @@
 // API Base URL
 const API_URL = 'http://localhost:3000';
 
-// Store results globally
+// Store results and logs globally
 let allResults = [];
-let resultsTable;
+let allLogs = [];
 
 // Initialize the page
 document.addEventListener('DOMContentLoaded', function() {
-    initializeDataTable();
     loadSessions();
     updateDashboard();
     
@@ -17,17 +16,6 @@ document.addEventListener('DOMContentLoaded', function() {
         updateDashboard();
     }, 5000);
 });
-
-// Initialize DataTable
-function initializeDataTable() {
-    resultsTable = $('#resultsTable').DataTable({
-        order: [[0, 'asc']],
-        pageLength: 25,
-        language: {
-            emptyTable: "No results available. Check some numbers to see results here."
-        }
-    });
-}
 
 // Show/Hide sections
 function showSection(sectionId) {
@@ -226,65 +214,219 @@ async function checkNumbers() {
     }
     
     // Show progress
-    document.getElementById('checkProgress').style.display = 'block';
+    const progressBox = document.getElementById('checkProgress');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const progressCount = document.getElementById('progressCount');
+    
+    progressBox.style.display = 'block';
+    progressBar.style.width = '0%';
+    progressBar.textContent = '0%';
+    progressText.textContent = 'Checking numbers, please wait...';
+    progressCount.textContent = `0 / ${numbers.length}`;
     
     try {
-        const response = await fetch(`${API_URL}/api/check-numbers`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sessionId, numbers })
-        });
+        // Check numbers one at a time to show progress
+        const results = [];
+        const logs = [];
         
-        const data = await response.json();
-        
-        document.getElementById('checkProgress').style.display = 'none';
-        
-        if (response.ok && data.success) {
-            allResults = allResults.concat(data.results);
-            updateResultsTable(data.results);
-            showAlert('success', `Successfully checked ${data.results.length} numbers`);
+        for (let i = 0; i < numbers.length; i++) {
+            const number = numbers[i];
             
-            // Clear the textarea
-            document.getElementById('phoneNumbers').value = '';
+            const response = await fetch(`${API_URL}/api/check-numbers`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId, numbers: [number] })
+            });
             
-            // Update dashboard
-            updateDashboard();
+            const data = await response.json();
             
-            // Switch to results section
-            showSection('results');
-        } else {
-            showAlert('error', data.error || 'Failed to check numbers');
+            if (response.ok && data.success) {
+                results.push(...data.results);
+                logs.push(...data.logs);
+                
+                // Update progress
+                const progress = ((i + 1) / numbers.length) * 100;
+                progressBar.style.width = `${progress}%`;
+                progressBar.textContent = `${Math.round(progress)}%`;
+                progressCount.textContent = `${i + 1} / ${numbers.length}`;
+            } else {
+                results.push({
+                    number: number,
+                    exists: false,
+                    error: data.error || 'Failed to check number',
+                    whatsappId: null,
+                    name: 'Error',
+                    isBusiness: false,
+                    hasProfilePic: false,
+                    profilePicUrl: null
+                });
+            }
         }
+        
+        progressBox.style.display = 'none';
+        
+        allResults = allResults.concat(results);
+        allLogs = allLogs.concat(logs);
+        updateResultsTable();
+        updateLogsDisplay();
+        showAlert('success', `Successfully checked ${results.length} numbers`);
+        
+        // Clear the textarea
+        document.getElementById('phoneNumbers').value = '';
+        
+        // Update dashboard
+        updateDashboard();
+        
+        // Switch to results section
+        showSection('results');
     } catch (error) {
-        document.getElementById('checkProgress').style.display = 'none';
+        progressBox.style.display = 'none';
         showAlert('error', 'Network error: ' + error.message);
     }
 }
 
 // Update results table
-function updateResultsTable(results) {
-    results.forEach(result => {
+function updateResultsTable() {
+    const tbody = document.getElementById('resultsTableBody');
+    tbody.innerHTML = '';
+    
+    if (allResults.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center text-muted">
+                    No results available. Check some numbers to see results here.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    allResults.forEach(result => {
+        const row = document.createElement('tr');
+        
+        // Number
+        const numberCell = document.createElement('td');
+        numberCell.textContent = result.number;
+        row.appendChild(numberCell);
+        
+        // Profile Picture
+        const picCell = document.createElement('td');
+        if (result.profilePicUrl) {
+            picCell.innerHTML = `<img src="${result.profilePicUrl}" class="profile-pic" alt="Profile Picture">`;
+        } else {
+            picCell.innerHTML = `<div class="profile-pic-placeholder"><i class="fas fa-user"></i></div>`;
+        }
+        row.appendChild(picCell);
+        
+        // Account Type
+        const accountCell = document.createElement('td');
+        if (result.exists) {
+            const typeClass = result.isBusiness ? 'business' : 'regular';
+            const typeIcon = result.isBusiness ? 'fa-briefcase' : 'fa-user';
+            const typeText = result.isBusiness ? 'Business' : 'Regular';
+            accountCell.innerHTML = `
+                <span class="account-type-badge ${typeClass}">
+                    <i class="fas ${typeIcon}"></i> ${typeText}
+                </span>
+            `;
+        } else {
+            accountCell.innerHTML = '<span class="text-muted">N/A</span>';
+        }
+        row.appendChild(accountCell);
+        
+        // Status
+        const statusCell = document.createElement('td');
         const statusBadge = result.exists 
             ? '<span class="status-badge valid"><i class="fas fa-check-circle"></i> Valid</span>'
             : '<span class="status-badge invalid"><i class="fas fa-times-circle"></i> Invalid</span>';
+        statusCell.innerHTML = statusBadge;
+        row.appendChild(statusCell);
         
-        const businessBadge = result.isBusiness 
-            ? '<i class="fas fa-briefcase" style="color: #128C7E;"></i>'
-            : '<i class="fas fa-user" style="color: #718096;"></i>';
+        // WhatsApp ID
+        const idCell = document.createElement('td');
+        idCell.innerHTML = `<code style="font-size: 0.85rem;">${result.whatsappId || 'N/A'}</code>`;
+        row.appendChild(idCell);
         
-        const profilePicBadge = result.hasProfilePic
-            ? '<i class="fas fa-image" style="color: #128C7E;"></i>'
-            : '<i class="fas fa-user-slash" style="color: #718096;"></i>';
+        // Progress (as percentage of success)
+        const progressCell = document.createElement('td');
+        const progressValue = result.exists ? 100 : 0;
+        const progressColor = result.exists ? 'bg-success' : 'bg-danger';
+        progressCell.innerHTML = `
+            <div class="result-progress">
+                <div class="progress">
+                    <div class="progress-bar ${progressColor}" role="progressbar" 
+                         style="width: ${progressValue}%" aria-valuenow="${progressValue}" 
+                         aria-valuemin="0" aria-valuemax="100">${progressValue}%</div>
+                </div>
+            </div>
+        `;
+        row.appendChild(progressCell);
         
-        resultsTable.row.add([
-            result.number,
-            statusBadge,
-            result.whatsappId || 'N/A',
-            result.name,
-            businessBadge,
-            profilePicBadge
-        ]).draw();
+        tbody.appendChild(row);
     });
+}
+
+// Update logs display
+function updateLogsDisplay() {
+    const container = document.getElementById('logsContainer');
+    
+    if (allLogs.length === 0) {
+        container.innerHTML = `
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                <span>No logs yet. Check some numbers to see server responses here.</span>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = '';
+    
+    // Display logs in reverse order (newest first)
+    [...allLogs].reverse().forEach(log => {
+        const logEntry = document.createElement('div');
+        const logClass = log.result === 'error' ? 'log-entry error' : 'log-entry';
+        logEntry.className = logClass;
+        
+        const time = new Date(log.timestamp).toLocaleTimeString();
+        
+        let attemptsHtml = '';
+        log.attempts.forEach(attempt => {
+            const icon = attempt.success ? 'fa-check-circle text-success' : 'fa-times-circle text-danger';
+            attemptsHtml += `
+                <div class="mb-1">
+                    <i class="fas ${icon}"></i> 
+                    ${attempt.id ? `<code>${attempt.id}</code>: ` : ''}
+                    ${attempt.message}
+                </div>
+            `;
+        });
+        
+        logEntry.innerHTML = `
+            <div class="log-header">
+                <span class="log-number"><i class="fas fa-phone"></i> ${log.number}</span>
+                <span class="log-time">${time}</span>
+            </div>
+            <div class="log-details">
+                ${attemptsHtml}
+                ${log.isBusiness !== undefined ? `<div class="mt-2"><strong>Account Type:</strong> ${log.isBusiness ? 'Business' : 'Regular'}</div>` : ''}
+            </div>
+        `;
+        
+        container.appendChild(logEntry);
+    });
+}
+
+// Clear logs
+function clearLogs() {
+    if (!confirm('Are you sure you want to clear all logs?')) {
+        return;
+    }
+    
+    allLogs = [];
+    updateLogsDisplay();
+    showAlert('info', 'Logs cleared successfully');
 }
 
 // Update dashboard statistics
@@ -313,40 +455,58 @@ function clearResults() {
     }
     
     allResults = [];
-    resultsTable.clear().draw();
+    updateResultsTable();
     updateDashboard();
     showAlert('info', 'Results cleared successfully');
 }
 
 // Export results to CSV
-function exportResults(format) {
+function exportResults(filterType) {
     if (allResults.length === 0) {
         showAlert('error', 'No results to export');
         return;
     }
     
-    if (format === 'csv') {
-        let csv = 'Number,Status,WhatsApp ID,Name,Business,Has Profile Picture\n';
-        
-        allResults.forEach(result => {
-            csv += `${result.number},`;
-            csv += `${result.exists ? 'Valid' : 'Invalid'},`;
-            csv += `${result.whatsappId || 'N/A'},`;
-            csv += `"${result.name}",`;
-            csv += `${result.isBusiness ? 'Yes' : 'No'},`;
-            csv += `${result.hasProfilePic ? 'Yes' : 'No'}\n`;
-        });
-        
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `whatsapp-check-results-${Date.now()}.csv`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-        
-        showAlert('success', 'Results exported successfully');
+    let resultsToExport = allResults;
+    let fileName = 'whatsapp-check-results';
+    
+    // Filter based on type
+    if (filterType === 'business') {
+        resultsToExport = allResults.filter(r => r.isBusiness === true);
+        fileName = 'whatsapp-business-accounts';
+        if (resultsToExport.length === 0) {
+            showAlert('error', 'No business accounts to export');
+            return;
+        }
+    } else if (filterType === 'regular') {
+        resultsToExport = allResults.filter(r => r.exists && r.isBusiness === false);
+        fileName = 'whatsapp-regular-accounts';
+        if (resultsToExport.length === 0) {
+            showAlert('error', 'No regular accounts to export');
+            return;
+        }
     }
+    
+    let csv = 'Number,Status,WhatsApp ID,Account Type,Has Profile Picture,Profile Picture URL\n';
+    
+    resultsToExport.forEach(result => {
+        csv += `${result.number},`;
+        csv += `${result.exists ? 'Valid' : 'Invalid'},`;
+        csv += `${result.whatsappId || 'N/A'},`;
+        csv += `${result.isBusiness ? 'Business' : 'Regular'},`;
+        csv += `${result.hasProfilePic ? 'Yes' : 'No'},`;
+        csv += `${result.profilePicUrl || 'N/A'}\n`;
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${fileName}-${Date.now()}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+    
+    showAlert('success', `Exported ${resultsToExport.length} results successfully`);
 }
 
 // Show alert message

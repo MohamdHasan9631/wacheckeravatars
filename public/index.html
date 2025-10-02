@@ -13,8 +13,8 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- DataTables CSS -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -67,6 +67,12 @@
                     <a href="#" class="menu-item" onclick="showSection('results')">
                         <i class="fas fa-table"></i>
                         <span>Results</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="menu-item" onclick="showSection('logs')">
+                        <i class="fas fa-list-alt"></i>
+                        <span>Logs</span>
                     </a>
                 </li>
             </ul>
@@ -184,8 +190,14 @@
                 </div>
 
                 <div id="checkProgress" class="progress-box" style="display: none;">
-                    <i class="fas fa-spinner fa-spin"></i>
-                    <span>Checking numbers, please wait...</span>
+                    <div class="progress-info">
+                        <span id="progressText">Checking numbers, please wait...</span>
+                        <span id="progressCount">0 / 0</span>
+                    </div>
+                    <div class="progress mt-2" style="height: 25px;">
+                        <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" style="width: 0%">0%</div>
+                    </div>
                 </div>
             </section>
 
@@ -197,30 +209,59 @@
                 </div>
 
                 <div class="table-actions">
-                    <button onclick="exportResults('csv')" class="btn btn-secondary">
-                        <i class="fas fa-file-csv"></i> Export CSV
-                    </button>
+                    <div class="btn-group" role="group">
+                        <button onclick="exportResults('all')" class="btn btn-secondary">
+                            <i class="fas fa-file-csv"></i> Export All
+                        </button>
+                        <button onclick="exportResults('business')" class="btn btn-success">
+                            <i class="fas fa-briefcase"></i> Export Business Only
+                        </button>
+                        <button onclick="exportResults('regular')" class="btn btn-info">
+                            <i class="fas fa-user"></i> Export Regular Only
+                        </button>
+                    </div>
                     <button onclick="clearResults()" class="btn btn-danger">
                         <i class="fas fa-trash"></i> Clear Results
                     </button>
                 </div>
 
                 <div class="table-container">
-                    <table id="resultsTable" class="display" style="width:100%">
-                        <thead>
+                    <table id="resultsTable" class="table table-hover table-striped">
+                        <thead class="table-light">
                             <tr>
                                 <th>Number</th>
+                                <th>Profile Picture</th>
+                                <th>Account Type</th>
                                 <th>Status</th>
                                 <th>WhatsApp ID</th>
-                                <th>Name</th>
-                                <th>Business</th>
-                                <th>Profile Picture</th>
+                                <th>Progress</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="resultsTableBody">
                             <!-- Results will be loaded here -->
                         </tbody>
                     </table>
+                </div>
+            </section>
+
+            <!-- Logs Section -->
+            <section id="logs" class="content-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-list-alt"></i> WhatsApp Server Logs</h2>
+                    <p>View responses from WhatsApp server</p>
+                </div>
+
+                <div class="logs-actions mb-3">
+                    <button onclick="clearLogs()" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Clear Logs
+                    </button>
+                </div>
+
+                <div id="logsContainer" class="logs-container">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <span>No logs yet. Check some numbers to see server responses here.</span>
+                    </div>
                 </div>
             </section>
         </main>
@@ -229,8 +270,8 @@
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     
-    <!-- DataTables JS -->
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script src="script.js"></script>
 </body>

@@ -173,6 +173,7 @@ app.post('/api/check-numbers', async (req, res) => {
                     
                     // Try to get profile picture with different ID formats
                     let profilePicUrl = null;
+                    let hasCustomProfilePic = false;
                     const idFormats = [
                         numberId._serialized,
                         `${number.replace(/[^0-9]/g, '')}@c.us`,
@@ -185,6 +186,7 @@ app.post('/api/check-numbers', async (req, res) => {
                             const picUrl = await client.getProfilePicUrl(idFormat);
                             if (picUrl) {
                                 profilePicUrl = picUrl;
+                                hasCustomProfilePic = true;
                                 logEntry.attempts.push({
                                     id: idFormat,
                                     success: true,
@@ -193,6 +195,8 @@ app.post('/api/check-numbers', async (req, res) => {
                                 break;
                             }
                         } catch (picError) {
+                            // Log the attempt but don't treat it as a failure
+                            // Some ID formats may not work, which is expected
                             logEntry.attempts.push({
                                 id: idFormat,
                                 success: false,
@@ -201,13 +205,21 @@ app.post('/api/check-numbers', async (req, res) => {
                         }
                     }
                     
+                    // If no custom profile picture was found, log that default avatar is used
+                    if (!hasCustomProfilePic) {
+                        logEntry.attempts.push({
+                            success: true,
+                            message: 'No custom profile picture found - user has default WhatsApp avatar'
+                        });
+                    }
+                    
                     results.push({
                         number: number,
                         exists: true,
                         whatsappId: numberId._serialized,
                         name: contact.name || contact.pushname || 'N/A',
                         isBusiness: contact.isBusiness || false,
-                        hasProfilePic: profilePicUrl ? true : false,
+                        hasProfilePic: true, // All WhatsApp users have a profile picture (custom or default)
                         profilePicUrl: profilePicUrl
                     });
                     
